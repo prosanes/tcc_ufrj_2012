@@ -1,0 +1,3 @@
+COMPONENT=BenchmarkAppC
+
+include $(MAKERULES)

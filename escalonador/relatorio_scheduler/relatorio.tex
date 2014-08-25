@@ -1,0 +1,245 @@
+\documentclass[a4paper,onecolumn, 10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese,brazil]{babel}
+\usepackage{ae}
+
+\usepackage[pdftex]{graphicx} % Exporta para pdf e aceita figuras
+%\usepackage{indentfirst} % Identa primeiro paragrafo
+\usepackage{textcomp}
+\usepackage[margin=30mm]{geometry}
+\usepackage[pdfauthor={Pedro Rosanes},% Insere metadados com o nome do autor
+	    pdftitle={Relatório dos Componentes de Escalonamento},% Título que será mostrado na janela do PDF
+	    pdftex]{hyperref} % Usa hiperlinks no decorrer do texto
+\usepackage{color}
+\usepackage{listings} 
+%\lstset{language=C++}
+\lstset{ %
+    language=C++,                % choose the language of the code
+        basicstyle=\footnotesize,       % the size of the fonts that are used for the code
+        backgroundcolor=\color{white},  % choose the background color. You must add
+        showspaces=false,               % show spaces adding particular underscores
+        showstringspaces=false,         % underline spaces within strings
+        showtabs=false,                 % show tabs within strings adding particular underscores
+        frame=single,                   % adds a frame around the code
+        tabsize=2,                  % sets default tabsize to 2 spaces
+        captionpos=b,                   % sets the caption-position to bottom
+        breaklines=true,                % sets automatic line breaking
+        breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
+        title=\lstname,                 % show the filename of files included with \lstinputlisting;
+    % also try caption instead of title
+        escapeinside={\%*}{*)},         % if you want to add a comment within your code
+        morekeywords={*,...}            % if you want to add more keywords to the set
+}
+
+%\parskip 7.2pt           % sets spacing between paragraphs
+\renewcommand{\baselinestretch}{1.5}
+
+\title{Relatório dos Componentes de Escalonamento}
+\author{Pedro Rosanes}
+%\date{}
+
+\begin{document}
+
+\maketitle
+
+
+%\begin{titlepage}
+%\maketitle
+%\tableofcontents % Sumário
+%\end{titlepage}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Análise do Escalonador Padrão}\label{escalonadorpadrao}
+
+O escalonador padrão adota uma política FIFO. A estrutura de dados utilizada é uma lista encadeada.
+Ele provê as interfaces \textit{Scheduler} e \textit{TaskBasic}.
+As tarefas se conectam ao escalonador através da \textit{TaskBasic}. Ao compilar um programa em NesC, todas tarefas
+básicas viram uma interface desse tipo. Porém, para se diferenciarem é criado um parâmetro na interface
+\footnote{Para mais informações sobre interfaces parametrizadas olhar o livro TinyOS Programming\cite[s. 8.3 e 9]{tinyosprogramming}.}.
+
+Para medir a complexidade na prática, foi desenvolvida uma aplicação de teste. Nela cada tarefa executa um loop de 65000
+iterações, fazendo uma simples multiplicação em cada iteração. O número de tarefas variou entre 20, 50 e 100.
+Na tabela a seguir pode-se ver o tempo de execução em microsegundos:
+\begin{center}
+    \begin{tabular}{ | l | l | l | l | p{5cm} |}
+    \hline
+    Escalonador              & 20 Tarefas & 50 Tarefas & 100 Tarefas \\ \hline
+    Escalonador Padrão       & 1366 & 1849 & 2652 \\ \hline 
+    \end{tabular}
+\end{center}
+%\includegraphics[scale=0.5]{fila.png}
+
+\section{Análise do Escalonador \textit{Earliest Deadline First}}\label{escalonadoredf}
+
+Este escalonador aceita tarefas com deadline e elege as que tem menor \textit{deadline} para executar. A interface usada para criar
+esse tipo de tarefas é \textit{TaskDeadline}. O \textit{deadline} é passado por parâmetro pela função \textit{postTask}.
+As \textit{TaskBasic} também são aceitas como recomendado pelo TEP
+106\cite{tep106}.
+
+Em contraste, o escalonador não segue outra recomendação: não elimina a possibilidade de \textit{starvation} pois as tarefas
+básicas só são atendidas quando não há nenhuma com \textit{deadline} esperando para executar. A fila de prioridades é
+implementada da mesma forma que a do escalonador padrão\ref{escalonadorpadrao}, a única mudança está na inserção. Para
+inserir, a fila é percorrida do começo até o fim, procurando-se o local exato de inserção.
+Por tanto o custo de inserir é $\bigcirc(n)$, e o custo de retirar da fila é $\bigcirc(1)$. 
+Uma possível modificação seria utilizar uma \textit{heap}. Mudando o custo de inserção e de retirada para $\bigcirc(\log
+n)$.
+
+A princípio tive problemas com o componente \textit{Counter32khzC}, 
+pois ele não existe para o \textit{micaz}. Para poder compilar o
+escalonador tive de tirá-lo. Ele era usado para calcular a hora atual, e somar ao deadline. Sem esse componente, temos
+um escalonador de prioridades (mínimo). 
+
+
+\section{Configuração de um Escalonador não Padrão}\label{configescalonador_naopadrao}
+Para substituir o escalonador padrão é preciso colocar uma configuração com o nome \textit{TinySchedulerC} no diretório
+da aplicação. Dentro desta configuração, amarra-se a interface \textit{Scheduler} a implementação do escalonador. Por
+exemplo:
+\begin{lstlisting}
+configuration TinySchedulerC 
+{
+    provides interface Scheduler;
+    ...
+}
+implementation 
+{
+    components SchedulerDeadlineP;
+    ...
+
+    Scheduler = SchedulerDeadlineP;
+    ...
+}
+\end{lstlisting}
+
+É preciso também criar a interface para o novo tipo de tarefa, com o comando \textit{postTask} e o evento
+\textit{runTask}. Por exemplo:
+\begin{lstlisting}
+interface TaskDeadline<precision_tag> { 
+    async command error_t postTask(uint32_t deadline);
+    event void runTask();
+}
+\end{lstlisting}
+
+Por ultimo, deve-se amarrar a interface da tarefa a do escalonador. Por exemplo:
+\begin{lstlisting}
+configuration TinySchedulerC 
+{
+    provides interface Scheduler;
+    provides interface TaskBasic[uint8_t id];
+    provides interface TaskDeadline<TMilli>[uint8_t id];
+}
+implementation 
+{
+    components SchedulerDeadlineP;
+    ...
+
+    Scheduler = SchedulerDeadlineP;
+    TaskBasic = Sched;
+    TaskDeadline = Sched;
+}
+\end{lstlisting}
+
+Para que o escalonador funcione corretamente no simulador é preciso adicionar funções que lidam com eventos no
+\textit{tossim}. Essas funções foram retiradas do arquivo
+\textit{opt/tinyos-2.1.1/tos/lib/tossim/SimSchedulerBasicP.nc}.
+Primeiro é preciso adicionar ao \textit{Scheduler}:
+\begin{lstlisting}[frame=single]
+  bool sim_scheduler_event_pending = FALSE;
+  sim_event_t sim_scheduler_event;
+
+  int sim_config_task_latency() {return 100;}
+  
+  void sim_scheduler_submit_event() {
+    if (sim_scheduler_event_pending == FALSE) {
+      sim_scheduler_event.time = sim_time() + sim_config_task_latency();
+      sim_queue_insert(&sim_scheduler_event);
+      sim_scheduler_event_pending = TRUE;
+    }
+  }
+
+  void sim_scheduler_event_handle(sim_event_t* e) {
+    sim_scheduler_event_pending = FALSE;
+    if (call Scheduler.runNextTask()) {
+      sim_scheduler_submit_event();
+    }
+  }
+
+  void sim_scheduler_event_init(sim_event_t* e) {
+    e->mote = sim_node();
+    e->force = 0;
+    e->data = NULL;
+    e->handle = sim_scheduler_event_handle;
+    e->cleanup = sim_queue_cleanup_none;
+  }
+\end{lstlisting}
+Depois, no \textit{Scheduler.init()} adicione:
+\begin{lstlisting}[frame=single]
+  sim_scheduler_event_pending = FALSE;
+  sim_scheduler_event_init(&sim_scheduler_event);
+\end{lstlisting}
+E por ultimo, no \textit{Scheduler.postTask()}, caso a tarefa tenha sido colocada na fila, adicione:
+\begin{lstlisting}[frame=single]
+  sim_scheduler_submit_event();
+\end{lstlisting}
+
+
+
+\section{Escalonador de Prioridades}\label{escalonadorprioridades}
+Com este escalonador é possível estabelecer prioridades às tarefas. A prioridade é passada como parâmetro através 
+do \textit{postTask}. Quanto menor o número passado, maior a preferência da tarefa. Sendo 0 a
+mais prioritária e 254 a menos prioritária.
+As \textit{Tasks} básicas também são aceitas, e são consideradas as tarefas com menor prioridade.
+
+Foram encontrados dois problemas de \textit{starvation}. O primeiro relacionado as tarefas básicas,
+onde elas só seriam atendidas caso não houvesse nenhuma tarefa com prioridade na fila. Para resolver isso, foi definido um
+limite máximo de tarefas prioritárias que podem ser atendidas em sequência. Caso esse limite seja excedido, uma tarefa
+básica é atendida. O segundo é relacionado às próprias tarefas com prioridade. Se entrar constantemente \textit{tasks} com alta
+prioridade, é possível que as de baixa prioridade não sejam atendidas. A solução se deu através do envelhecimento de
+tarefas. Ou seja, \textit{tasks} que ficam muito tempo na fila, têm sua importância aumentada.
+
+Dois tipos de estrutura de dados foram usadas para a organização das tarefas, uma fila comum e uma \textit{heap}. Com
+isso, totalizou-se quatro diferentes versões do escalonador:
+\begin{enumerate}
+    \item Fila comum sem envelhecimento
+    \item Fila comum com envelhecimento
+    \item Heap sem envelhecimento
+    \item Heap com envelhecimento
+\end{enumerate}
+A seguir uma tabela com a complexidade de inserção e remoção para cada escalonador:
+\begin{center}
+    \begin{tabular}{ | l | l | l | l | p{5cm} |}
+    \hline
+    Escalonador & Inserção & Remoção \\ \hline
+    Fila, sem envelhecimento & $\bigcirc(n)$ & $\bigcirc(1)$ \\ \hline 
+    Heap, sem envelhecimento & $\bigcirc(\log(n))$ & $\bigcirc(\log(n))$ \\ \hline
+    Fila, com envelhecimento & $\bigcirc(n)$ & $\bigcirc(n)$ \\ \hline
+    Heap, com envelhecimento & $\bigcirc(\log(n))$ & $\bigcirc(n)$ \\ \hline
+    \end{tabular}
+\end{center}
+Para medir a complexidade na prática, foi desenvolvida uma aplicação de teste. Nela cada tarefa executa um loop de 65000
+iterações, fazendo uma simples multiplicação em cada iteração. O número de tarefas variou entre 20, 50 e 100.
+Na tabela a seguir pode-se ver o tempo de execução em microsegundos:
+\begin{center}
+    \begin{tabular}{ | l | l | l | l | p{5cm} |}
+    \hline
+    Escalonador              & 20 Tarefas & 50 Tarefas & 100 Tarefas \\ \hline
+    Escalonador Padrão       & 1366 & 1849 & 2652 \\ \hline 
+    Fila, sem envelhecimento & 1733 & 4660 & 13721 \\ \hline 
+    Heap, sem envelhecimento & 2603 & 4308 & 7486 \\ \hline
+    Fila, com envelhecimento & 2278 & 7887 & 26066 \\ \hline
+    Heap, com envelhecimento & 2665 & 4510 & 7887 \\ \hline
+    \end{tabular}
+\end{center}
+O que pode-se perceber é que para um número pequeno de tarefas a fila é mais eficiente que a heap. Isso acontece pois
+não é compensado o \textit{overhead} do algoritmo da heap.
+\pagebreak
+
+\begin{thebibliography}{9}
+\bibitem{tinyosprogramming} P. Levis e D. Gay. TinyOS Programming, capítulo 11, 2009.
+\bibitem{tep106} P. Levis e C. Sharp. TEP 106: Schedulers and Tasks.
+                    \url{http://www.tinyos.net/tinyos-2.x/doc/html/tep106.html}
+\bibitem{bootsequence} Boot Sequence, TinyOS Tutorial. \url{http://docs.tinyos.net/index.php/Boot_Sequence}
+\end{thebibliography}
+
+\end{document}
