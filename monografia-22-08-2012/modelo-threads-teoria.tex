@@ -1,0 +1,52 @@
+\textit{TOSThreads} é uma biblioteca que permite programação com threads no TinyOS sem violar ou limitar o modelo de concorrência do
+sistema. O TinyOS executa em uma única thread --- a thread do kernel --- enquanto a aplicação executa 
+em uma ou mais threads --- nível de usuário.
+Em termos de escalonamento, o kernel tem prioridade máxima, ou seja, a aplicação só executa quando o núcleo do sistema
+está ocioso. Ele é responsável pelo escalonamento de todas as tarefas e execução das chamadas de sistemas. 
+O escalonador de threads utiliza uma política \textit{Round-Robin} com um tempo padrão de 5 milisegundos. Ele oferece
+toda a interface para manipulação de threads, como pausar, criar e destruir. 
+
+Três tipos de fluxo de execução passam a existir: tarefas, interrupções e threads. Como foi visto na seção
+\ref{modelo-concorrencia}, tarefas correspondem a um fluxo de execução, e tratadores de interrupção a outro. Além
+disso, foi observado que os tratadores de interrupção podem interromper a execução de uma tarefa, porém o contrário não
+é possível.
+Com esta observação, pode-se dizer que tratadores de interrupção têm prioridade maior do que tarefas.
+Para não violar o modelo de concorrência do TinyOS, as threads foram introduzidas com a menor prioridade de execução.
+Isto significa que uma interrupção força a troca de contexto da thread, e caso seu tratador poste uma tarefa, esta
+será executada antes da thread retomar o controle.
+
+Trocas de Contextos
+acontecem por três motivos diferentes: ocorrência de uma interrupção, termino do tempo de execução da thread, ou chamadas
+bloqueantes ao sistema. 
+Para implementar o primeiro caso, é inserida a função \textit{postAmble} ao final de todas as rotinas de processamento
+de interrupção. Esta função verifica se foi postada uma nova tarefa, e caso positivo, o controle é passado para o
+\textit{kernel}. Caso contrário, a thread continua a executar logo após o termino do tratador de interrupção.
+Para implementar o segundo caso, é utilizado um temporizador que provoca uma interrupção ao final de cada
+\textit{timeslice}. O tratador da interrupção posta uma tarefa, forçando o \textit{kernel} a assumir o controle e 
+escalonar a próxima thread.
+
+Chamadas de sistemas foram introduzidas para transformar chamadas de duas fases em chamadas de uma fase. Como os
+serviços oferecidos pelo TinyOS são naturalmente \textit{split-phase}, estas chamadas devem ser bloqueantes.
+Para fazer isto, a chamada de sistema bloqueia e adquire as informações da thread que a invocou. Posta uma tarefa que
+executará o serviço \textit{split-phase} e acorda a thread do kernel. Eventualmente, a tarefa executará a primeira fase
+do serviço. Na segunda fase, o resultado é enviado à thread, e esta é desbloqueada.
+
+Para gerenciar o uso concorrente de recursos entre threads a seguintes primitivas são oferecidas:
+\begin{description}
+    \setlength{\itemsep}{0.3pt}
+    \setlength{\parskip}{0pt}
+      \setlength{\parsep}{0pt}
+    \item[Mutex] Garante a exclusão mútua, como visto na seção \ref{multithread-corotinas}.
+    \item[Semáforo] Garante uma ordem de execução, como visto na seção \ref{multithread-corotinas}.
+    \item[Barreira] Garante que \textit{n} threads tenham chegado em um mesmo ponto. Todas threads que chamarem
+        \textit{Barrier.block()} são bloqueadas até que \textit{n} chamadas tenham acontecido.
+    \item[Variável de condição] Garante a suspensão de uma thread até que certa condição seja verdadeira.
+    \item[Contador bloqueante] Garante a suspensão de uma thread até que o contador atinja o valor determinado.
+\end{description}
+
+O programador pode utilizar threads estáticas ou dinâmicas. A diferença está no momento de criação da pilha e do bloco de controle da
+thread. Nas threads estáticas a criação é feita em tempo de compilação, enquanto nas threads dinâmicas 
+a criação é feita em tempo de execução. O bloco de controle, também chamado de
+\textit{Thread Control Block} (TCB), contém informações sobre a thread, como seu identificador, seu estado de
+execução, o valor dos registradores (para troca de contexto), entre outras\cite{TEP134}.
+

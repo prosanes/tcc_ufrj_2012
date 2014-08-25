@@ -1,0 +1,24 @@
+Nesta seção ilustraremos o uso de co-rotinas no TinyOS, por meio de uma aplicação que utiliza o modelo produtor/consumidor.
+
+Ao codificar o módulo principal, é preciso definir co-rotinas serão utilizadas.
+\lstinputlisting[firstline=1, lastline=7, firstnumber=1]{srcs/BenchmarkCCoro.nc}
+
+O próximo passo é ativar as primeiras co-rotinas
+\lstinputlisting[firstline=25, lastline=31, firstnumber=25]{srcs/BenchmarkCCoro.nc}
+
+A seguir a co-rotina responsável por criar os produtos. Aqui podemos ver como é feito o uso do comando \textit{yield()},
+responsável por ceder o controle.
+\lstinputlisting[firstline=54, lastline=68, firstnumber=54]{srcs/BenchmarkCCoro.nc}
+
+A co-rotina consumidora também é a responsável por ativar a co-rotina que terminará de calcular o tempo de execução de todo o
+programa. É importante notar que a co-rotina \textit{SerialSender} não será executada imediatamente. Ela entrará em uma
+fila, e será executada quando for escalonada. Obedecendo o modelo adodato (\ref{modelo-adotado}).
+\lstinputlisting[firstline=70, lastline=85, firstnumber=70]{srcs/BenchmarkCCoro.nc}
+
+\textit{SerialSender} é responsável por calcular o tempo final de execução, e enviar este valor pela porta serial para um computador.
+Repare que as mesmas chamadas de sistema utilizadas para threads, são utilizadas aqui.
+\lstinputlisting[firstline=31, lastline=51, firstnumber=31]{srcs/BenchmarkCCoro.nc}
+
+Na configuração, é preciso declarar os componentes responsáveis pelas co-rotinas, além de definir o tamanho de suas pilhas.
+\lstinputlisting[firstline=1, lastline=7]{srcs/BenchmarkAppCCoro.nc}
+\lstinputlisting[firstline=21, lastline=23, firstnumber=21]{srcs/BenchmarkAppCCoro.nc}

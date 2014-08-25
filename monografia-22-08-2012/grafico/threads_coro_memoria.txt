@@ -1,0 +1,3 @@
+XXXXXX ROM   RAM
+threads 11168 3201
+coro    10470 3166

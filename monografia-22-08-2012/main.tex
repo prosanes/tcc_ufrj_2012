@@ -1,0 +1,218 @@
+\documentclass[a4paper, 10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{ae}
+\usepackage{verbatim}
+
+\usepackage[pdftex]{graphicx} % Exposta para pdf e aceita figuras
+%\usepackage{indentfirst} % Identa primeiro paragrafo
+\usepackage{textcomp}
+\usepackage[margin=30mm]{geometry}
+\usepackage[pdfauthor={Pedro Rosanes},% Insere metadados com o nome do autor
+	    pdftitle={Extensão dos mecanismos de gerência de tarefas do sistema operacional TinyOS},% Título que será mostrado na janela do PDF
+	    pdftex]{hyperref} % Usa hiperlinks no decorrer do texto
+%\parskip 7.2pt           % sets spacing between paragraphs
+\renewcommand{\baselinestretch}{1.5}
+
+
+\usepackage{listings}
+\lstset{ %
+language=C++,                % choose the language of the code
+numbers=left, numberstyle=\tiny, stepnumber=2, numbersep=5pt,
+basicstyle=\footnotesize,       % the size of the fonts that are used for the code
+showspaces=false,               % show spaces adding particular underscores
+showstringspaces=false,         % underline spaces within strings
+showtabs=false,                 % show tabs within strings adding particular underscores
+frame=single,                   % adds a frame around the code
+tabsize=2,                  % sets default tabsize to 2 spaces
+%captionpos=b,                   % sets the caption-position to bottom
+%breaklines=true,                % sets automatic line breaking
+%breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
+%title=\caption,                 % show the filename of files included with \lstinputlisting;
+                                % also try caption instead of title
+escapeinside={\%*}{*)},         % if you want to add a comment within your code
+morekeywords={module,uses,interface,implementation,
+                task,event,call,post,configuration,
+                components,as,async,command,error_t,
+                atomic,uint8_t,uint16_t,uint32_t,
+                int8_t,int16_t,int32_t,
+                signal,generic,provides},            % if you want to add more keywords to the set
+belowskip=0pt
+}
+
+%---------------------------------------------------------------------------------------------------
+\title{Extensão dos mecanismos de gerência de tarefas do sistema operacional TinyOS}
+\author{Bolsista: Pedro Rosanes \and Orientador: Silvana Rossetto \and Departamento de Ciência da Computação}
+\date{11 de abril de 2011}
+
+\begin{document}
+
+\begin{titlepage}
+\maketitle
+\tableofcontents
+\end{titlepage}
+
+\abstract{Resumo}
+%Ta aparecendo resumo escrito nao sei pq!
+\input{resumo.tex}
+
+%----------------------------------------------------------------------------------------------------
+\section{Introdução}\label{intro}
+\input{introducao.tex}
+
+%----------------------------------------------------------------------------------------------------
+\section{Conceitos Básicos}\label{teoria}
+
+\subsection{Rede de Sensores Sem Fio}
+\input{rssf.tex}
+
+\subsection{TinyOS e nesC}
+\input{tinyos-nesc.tex}
+
+\subsection {Sequência de inicialização do TinyOS}\label{inicializacao}
+\input{sequencia-inicializacao}
+
+\subsection{Modelo de concorrência do TinyOS}\label{modeloconcorrencia}
+\input{modelo-concorrencia}
+
+
+%----------------------------------------------------------------------------------------------------
+\section{Escalonamento de tarefas}\label{escalonadorespropostos}
+Nesta seção é feita uma abordagem teórica sobre escalonamento de tarefas.
+Depois apresentamos a implementação do escalonador padrão de tarefas do TinyOS.
+Também apresentamos o projeto e as etapas de implementação de novos escalonadores de tarefas para o TinyOS.
+Implementamos três propostas: escalonador EDF (\textit{Earliest Deadline First}), escalonador com prioridades,  
+e escalonador multi-nível.
+Por último mostramos os experimentos e resultados obtidos, usados para comprar os diferentes escalonadores.
+
+\subsection{Abordagem teórica sobre escalonamento de tarefas}\label{escalonador-teoria}
+\input{escalonamento-de-tarefas.tex}
+
+\subsection{Escalonador padrão de tarefas do TinyOS}\label{escalonadorpadrao}
+\input{escalonador-padrao.tex}
+
+\subsection{Escalonador EDF (\textit{Earliest Deadline First})}\label{escalonadoredf}
+\input{escalonador-edf.tex}
+
+\subsection{Escalonador por prioridades}\label{escalonadorprioridade}
+\input{escalonador-prioridades.tex}
+
+\subsection{Escalonador multi-nível}
+\input{escalonador-multi-nivel.tex}
+
+\subsection{Experimentos e resultados obtidos}
+\input{experimentos-escalonadores.tex}
+%---------------------------------------------------------------------------------------------------
+\section{Modelos de programação}\label{modelo-programacao}
+Nesta seção, primeiro é feita uma abordagem teórica sobre Multithreading e co-rotinas. 
+Também apresentamos a biblioteca \textit{TinyOS Threads}, que oferece um modelo de programação em threads, como
+alternativa ao modelo orientado a eventos.
+Depois apresentamos o projeto e as etapas de implementação de co-rotinas para o TinyOS.
+Por último mostramos os experimentos e resultados obtidos, usados para comprar o modelo de threads com o de co-rotinas.
+
+\subsection{Abordagem teórica sobre multithreading e co-rotinas}
+\input{multithread-corotinas.tex}\label{multithread-corotinas}
+
+\subsection{TinyOS Threads} \label{TOSThreads}
+\input{modelo-threads-teoria.tex}
+
+    \subsubsection{Exemplo de aplicação produtor/consumidor}
+    \input{exemplo-aplicacao-prodcons-thread.tex}
+
+    \subsubsection{Implementação}
+    \input{modelo-threads-implementacao.tex}
+
+\subsection{Co-rotinas para o TinyOS}\label{modelo-corotinas}
+O modelo que decidimos implementar foi um descrito por Ana Moura em sua tese de doutorado\cite[s. 6.2]{Moura/04}.
+Neste modelo existe uma co-rotina principal que é responsável por escalonar as outras co-rotinas. 
+    
+    \subsubsection{Exemplo de aplicação produtor/consumidor}
+    \input{exemplo-aplicacao-prodcons-coro.tex}
+
+    \subsubsection{Implementação de co-rotinas para o TinyOS}
+    \input{co-rotinas-implementacao.tex}
+
+\subsection{Experimentos e resultados obtidos}
+\input{experimentos-corotinas.tex}
+
+%----------------------------------------------------------------------------------------------------
+\section{Conclusões}\label{conclusoes}
+\input{conclusoes.tex}
+
+%------------------------------------------------------------------------------
+
+\section{Trabalhos Futuros}
+
+
+%------------------
+\section{Apêndice}
+\appendix
+\section{Extensão para o Simulador TOSSIM}
+\input{escalonador-tossim.tex}\label{a:escalonador-tossim}
+%--------------------------------------------------------------------------------------
+\section{Anexos}
+\subsection{Blink}\label{a:Blink}
+    \subsubsection{BlinkC.nc:}
+    \lstinputlisting{srcs/BlinkC.nc}
+
+    \subsubsection{BlinkAppC.nc:}
+    \lstinputlisting{srcs/BlinkAppC.nc}
+
+\subsection{Aplicação de Teste do Escalonador Padrão}\label{a:appTestePadrao}
+    \subsubsection{aplicacaoTesteC.nc:}
+    \lstinputlisting{srcs/aplicacaoTesteCPadrao.nc}
+
+    \subsubsection{aplicacaoTesteAppC.nc:}
+    \lstinputlisting{srcs/aplicacaoTesteAppC.nc}
+
+\subsection{Aplicação de Teste do Escalonador com Prioridades}\label{a:appTeste}
+    \subsubsection{aplicacaoTesteC.nc:}
+    \lstinputlisting{srcs/aplicacaoTesteC.nc}
+
+    \subsubsection{aplicacaoTesteAppC.nc:}
+    \lstinputlisting{srcs/aplicacaoTesteAppC.nc}
+
+\subsection{Aplicação de Teste do Escalonador Multi-nível}\label{a:appTesteMulti}
+    \subsubsection{aplicacaoTesteC.nc:}
+    \lstinputlisting{srcs/aplicacaoTesteCMultinivel.nc}
+
+    \subsubsection{aplicacaoTesteAppC.nc:}
+    \lstinputlisting{srcs/aplicacaoTesteAppCMultinivel.nc}
+
+\subsection{Aplicação de Teste de Threads}\label{a:appTesteThread}
+    \subsubsection{BenchmarkAppC.nc:}
+    \lstinputlisting{srcs/BenchmarkAppCThreads.nc}
+
+    \subsubsection{BenchmarkC.nc:}
+    \lstinputlisting{srcs/BenchmarkCThreads.nc}
+
+\subsection{Aplicação de Teste de Co-rotinas}\label{a:appTesteCoro}
+    \subsubsection{BenchmarkAppC.nc:}
+    \lstinputlisting{srcs/BenchmarkAppCCoro.nc}
+
+    \subsubsection{BenchmarkC.nc:}
+    \lstinputlisting{srcs/BenchmarkCCoro.nc}
+
+\subsection{Escalonadores}
+    \subsubsection{SchedulerDeadlineP.nc:}
+    \lstinputlisting{srcs/SchedulerDeadlineP.nc}\label{a:edf}
+
+    \subsubsection{SchedulerPrioridadeFilaP.nc}
+    \lstinputlisting{srcs/SchedulerPrioridadeFilaP.nc}\label{a:prioridades-fila}
+
+    \subsubsection{SchedulerPrioridadeFilaAgingP.nc}
+    \lstinputlisting{srcs/SchedulerPrioridadeFilaAgingP.nc}\label{a:prioridades-fila-aging}
+
+    \subsubsection{SchedulerPrioridadeHeapP.nc}
+    \lstinputlisting{srcs/SchedulerPrioridadeHeapP.nc}\label{a:prioridades-heap}
+
+    \subsubsection{SchedulerPrioridadeHeapAgingP.nc}
+    \lstinputlisting{srcs/SchedulerPrioridadeHeapAgingP.nc}\label{a:prioridades-heap-aging}
+
+    \subsubsection{SchedulerMultinivelP.nc}
+    \lstinputlisting{srcs/SchedulerMultinivelP.nc}
+
+%----------------------------------------------------------------------------------------------------
+\bibliographystyle{unsrt}
+\bibliography{ic}
+\end{document}

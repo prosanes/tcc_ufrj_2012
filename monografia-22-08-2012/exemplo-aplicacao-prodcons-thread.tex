@@ -1,0 +1,29 @@
+Nesta seção ilustraremos o uso de threads no TinyOS, por meio de uma aplicação que utiliza o modelo produtor/consumidor.
+
+Ao codificar o módulo principal, é preciso definir quantas threads serão utilizadas.
+\lstinputlisting[firstline=4, lastline=10, firstnumber=4]{srcs/BenchmarkCThreads.nc}
+E quais primitivas de gerência de concorrência.
+\lstinputlisting[firstline=18, lastline=28, firstnumber=18]{srcs/BenchmarkCThreads.nc}
+
+O próximo passo é inicializar estas primitivas, e as threads.
+\lstinputlisting[firstline=33, lastline=45, firstnumber=33]{srcs/BenchmarkCThreads.nc}
+
+A seguir a thread responsável por criar os produtos. Aqui podemos ver como é feito o uso das primitivas de gerência de
+concorrência.
+\lstinputlisting[firstline=72, lastline=90, firstnumber=72]{srcs/BenchmarkCThreads.nc}
+
+A thread consumidora também é a responsável por acordar a thread que terminará de calcular o tempo de execução de todo o
+programa.
+\lstinputlisting[firstline=92, lastline=111, firstnumber=92]{srcs/BenchmarkCThreads.nc}
+
+Ao final do consumo de todos os produtos a thread \textit{SerialSender} é desbloqueada.
+Ela é responsável por calcular o tempo final de execução, e enviar este valor pela porta serial para um computador.
+Na linha 60, podemos ver a utilização da chamada de sistema responsável por enviar este valor.
+\lstinputlisting[firstline=47, lastline=69, firstnumber=47]{srcs/BenchmarkCThreads.nc}
+
+Na configuração, é preciso declarar os componentes responsáveis pelas threads, além de definir o tamanho de suas pilhas.
+\lstinputlisting[firstline=1, lastline=7]{srcs/BenchmarkAppCThreads.nc}
+\lstinputlisting[firstline=21, lastline=23, firstnumber=21]{srcs/BenchmarkAppCThreads.nc}
+O mesmo deve ser feito para as primitivas de gerência de concorrência.
+\lstinputlisting[firstline=27, firstnumber=27]{srcs/BenchmarkAppCThreads.nc}
+
